@@ -1,6 +1,5 @@
-name = "my-vite-app"   # your worker/app name here
+name = "offline-scorer"
 compatibility_date = "2025-05-26"
 
-[site]
-bucket = "./dist"
-entry-point = "."
+[assets]
+directory = "./dist"
