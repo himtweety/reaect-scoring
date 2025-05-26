@@ -58,6 +58,7 @@ const Home: React.FC = () => {
           min={2}
           max={10}
           value={numPlayers}
+          inputMode="numeric"
           onChange={(e) => handleNumPlayersChange(parseInt(e.target.value) || 2)}
         />
         {error && <p className="text-red-600 mt-1">{error}</p>}

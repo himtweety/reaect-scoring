@@ -204,6 +204,7 @@ const Scoreboard: React.FC = () => {
                     placeholder="Value"
                     min={0}
                     value={tempValues[index]}
+                    inputMode="numeric"
                     onChange={(e) => handleValueChange(index, parseInt(e.target.value) || 0)}
                   />
                 </div>
@@ -218,6 +219,7 @@ const Scoreboard: React.FC = () => {
                     min={0}
                     max={10} // 👈 This helps with UI enforcement
                     value={index === winner ? 0 : tempPoints[index]}
+                    inputMode="numeric"
                     onChange={(e) => handlePointChange(index, parseInt(e.target.value) || 0)}
                     disabled={index === winner}
                   />
