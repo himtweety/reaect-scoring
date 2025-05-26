@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Home: React.FC = () => {
   const [numPlayers, setNumPlayers] = useState(2);
@@ -51,16 +52,21 @@ const Home: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
       <h1 className="text-3xl font-bold mb-6">Start New Game</h1>
 
-      <div className="mb-4">
+      <div className="mb-4 w-full max-w-sm">
         <label className="block font-semibold mb-2">Number of Players (2-10):</label>
-        <Input
-          type="number"
-          min={2}
-          max={10}
-          value={numPlayers}
-          inputMode="numeric"
-          onChange={(e) => handleNumPlayersChange(parseInt(e.target.value) || 2)}
-        />
+        
+        <Select value={String(numPlayers)} onValueChange={(value) => handleNumPlayersChange(Number(value))}>
+        <SelectTrigger className="w-full border px-4 py-2 rounded-md text-left">
+          <SelectValue placeholder="Select number of players" />
+        </SelectTrigger>
+        <SelectContent>
+          {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
+            <SelectItem key={n} value={String(n)}>
+              {n}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
         {error && <p className="text-red-600 mt-1">{error}</p>}
       </div>
 
