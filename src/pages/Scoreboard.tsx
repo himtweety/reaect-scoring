@@ -24,15 +24,16 @@ const Scoreboard: React.FC = () => {
   const navigate = useNavigate();
 
   const valueFactorFormula = (v: number) => {
-     return (v * v + 3 * v) / 2
-  }
-  
+    return (v * v + 3 * v) / 2;
+  };
+
   const userScoreFormula = (
-                              totalPlayers: number,
-                              totalValueFactor: number,
-                              userValueFactor: number,
-                              userPoints:number 
-                            ) => (userValueFactor * totalPlayers) - (totalValueFactor + userPoints);
+    totalPlayers: number,
+    totalValueFactor: number,
+    userValueFactor: number,
+    userPoints: number
+  ) => (userValueFactor * totalPlayers) - (totalValueFactor + userPoints);
+
   useEffect(() => {
     const storedPlayers = JSON.parse(localStorage.getItem("players") || "[]");
     setPlayers(storedPlayers);
@@ -40,17 +41,19 @@ const Scoreboard: React.FC = () => {
     setTempPoints(new Array(storedPlayers.length).fill(0));
 
     const storedRoundsRaw = JSON.parse(localStorage.getItem("rounds") || "[]");
-    
 
     const normalizedRounds: RoundData[] = storedRoundsRaw.map((round: any) => {
       if (!round.scores) {
         const numPlayers = storedPlayers.length;
         const valueFactors = round.values.map((value: number) => valueFactorFormula(value));
-        const totalValueFactor = valueFactors.reduce((sum, val) => sum + val, 0);
+        const totalValueFactor = valueFactors.reduce((sum: number, val: number) => sum + val, 0);
         const rawScores = valueFactors.map(
-          (vf: number, i: number) => userScoreFormula(numPlayers, totalValueFactor, vf, round.points[i])           
+          (vf: number, i: number) => userScoreFormula(numPlayers, totalValueFactor, vf, round.points[i])
         );
-        const sumOfOthers = rawScores.reduce((sum, score, i) => (i === round.winner ? sum : sum + score), 0);
+        const sumOfOthers = rawScores.reduce(
+          (sum: number, score: number, i: number) => (i === round.winner ? sum : sum + score),
+          0
+        );
         rawScores[round.winner] = -sumOfOthers;
 
         return {
@@ -78,6 +81,7 @@ const Scoreboard: React.FC = () => {
     updated[index] = Math.min(10, Math.max(0, value)); // Clamp between 0 and 10
     setTempPoints(updated);
   };
+
   function calculateScores() {
     if (rounds.length >= players.length) {
       alert("Number of rounds cannot exceed number of players.");
@@ -85,15 +89,20 @@ const Scoreboard: React.FC = () => {
     }
 
     const numPlayers = players.length;
-    const valueFactors = tempValues.map(value => valueFactorFormula(value));
-    const totalValueFactor = valueFactors.reduce((sum, val) => sum + val, 0);
+    const valueFactors = tempValues.map((value) => valueFactorFormula(value));
+    const totalValueFactor = valueFactors.reduce((sum: number, val: number) => sum + val, 0);
 
     // Ensure winner's point is zero before calculating
     const adjustedPoints = [...tempPoints];
     adjustedPoints[winner] = 0;
 
-    const rawScores = valueFactors.map((vf, i) => userScoreFormula(numPlayers, totalValueFactor, vf, adjustedPoints[i]));
-    const sumOfOthers = rawScores.reduce((sum, score, i) => i === winner ? sum : sum + score, 0);
+    const rawScores = valueFactors.map((vf, i) =>
+      userScoreFormula(numPlayers, totalValueFactor, vf, adjustedPoints[i])
+    );
+    const sumOfOthers = rawScores.reduce(
+      (sum: number, score: number, i: number) => (i === winner ? sum : sum + score),
+      0
+    );
     rawScores[winner] = -sumOfOthers;
 
     const newRound: RoundData = {
@@ -121,7 +130,11 @@ const Scoreboard: React.FC = () => {
   );
 
   const handleResetGame = () => {
-    if (window.confirm("Are you sure you want to reset the current game? This will clear all rounds but keep the players.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to reset the current game? This will clear all rounds but keep the players."
+      )
+    ) {
       setRounds([]);
       localStorage.setItem("rounds", JSON.stringify([]));
       setShowForm(false);
@@ -129,7 +142,11 @@ const Scoreboard: React.FC = () => {
   };
 
   const handleStartNewGame = () => {
-    if (window.confirm("Are you sure you want to start a new game? This will clear all players and rounds and take you back to the home page.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to start a new game? This will clear all players and rounds and take you back to the home page."
+      )
+    ) {
       localStorage.removeItem("players");
       localStorage.removeItem("rounds");
       navigate("/");
@@ -174,12 +191,14 @@ const Scoreboard: React.FC = () => {
             {/* Inputs for each player */}
             {players.map((player, index) => (
               <div key={index} className="grid grid-cols-4 items-center gap-2">
-                <span className={`"font-medium col-span-1" ${index === winner ? "text-green-600" : ""}`}>
+                <span className={`font-medium col-span-1 ${index === winner ? "text-green-600" : ""}`}>
                   {player} {index === winner && "(Winner)"}
                 </span>
 
                 <div className="col-span-1">
-                  <label className={`"block text-sm font-semibold mb-1" ${index === winner ? "text-green-600" : ""}`}>Value</label>
+                  <label className={`block text-sm font-semibold mb-1 ${index === winner ? "text-green-600" : ""}`}>
+                    Value
+                  </label>
                   <Input
                     type="number"
                     placeholder="Value"
@@ -190,8 +209,8 @@ const Scoreboard: React.FC = () => {
                 </div>
 
                 <div className="col-span-1">
-                  <label className={`"block text-sm font-semibold mb-1 " ${index === winner ? "text-green-600" : ""}`}>
-                    Point 
+                  <label className={`block text-sm font-semibold mb-1 ${index === winner ? "text-green-600" : ""}`}>
+                    Point
                   </label>
                   <Input
                     type="number"
