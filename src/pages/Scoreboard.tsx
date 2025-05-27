@@ -186,21 +186,38 @@ const Scoreboard: React.FC = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Scoreboard</h2>
           <div className="flex gap-2 flex-wrap">
-            {rounds.length === players.length && players.length > 0 && (
-              <Button onClick={handleExportCSV}>⬇️ Export</Button>
-            )}
             <Button onClick={() => setShowForm(!showForm)} disabled={rounds.length >= players.length}>
-              Add Round Data
+              <span className="block md:hidden uppercase truncate">➕</span>
+              <span className="hidden md:block"> ➕ Round</span>
             </Button>
+            <Button onClick={() => setShowDetails(!showDetails)} disabled={rounds.length === 0}>
+              {showDetails ? ( 
+                <><span className="block md:hidden uppercase truncate">🙈</span>
+                <span className="hidden md:block"> Show Hands</span></>
+              ) : ( 
+                <><span className="block md:hidden uppercase truncate">👁</span>
+                <span className="hidden md:block"> Hide Hands</span></>
+              )}
+            </Button>
+            {rounds.length === players.length && players.length > 0 && (
+                <Button onClick={handleExportCSV}>⬇️</Button>
+              )}
           </div>
         </div>
 
         <div className="flex justify-between items-center flex-wrap w-full">
-          <Button onClick={() => setShowDetails(!showDetails)} disabled={rounds.length === 0}>
-            {showDetails ? "Hide" : "Show"} Details
-          </Button>
+          
           <Button onClick={() => setViewMode(viewMode === "vertical" ? "horizontal" : "vertical")}>
-            Switch to {viewMode === "vertical" ? "Horizontal" : "Vertical"}
+            {viewMode === "vertical" ? 
+            ( <>
+              <span className="block md:hidden uppercase truncate">PLR ↓</span>
+              <span className="hidden md:block"> Players ↓</span>
+              </>
+            ) : 
+            (<>
+            <span className="block md:hidden uppercase truncate">RND ↓</span>
+                <span className="hidden md:block"> Round (TVF) ↓</span>
+                </>)}
           </Button>
         </div>
 
