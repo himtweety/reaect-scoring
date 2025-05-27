@@ -233,8 +233,7 @@ const Scoreboard: React.FC = () => {
               >
                 {players.map((player, idx) => (
                   <option key={idx} value={idx}>
-                    <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
-                    <span className="hidden md:block"> {player}</span>
+                    {getInitials(player)}
                   </option>
                 ))}
               </select>
