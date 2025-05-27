@@ -30,6 +30,8 @@ const Scoreboard: React.FC = () => {
   const navigate = useNavigate();
 
   const valueFactorFormula = (v: number) => (v * v + 3 * v) / 2;
+  
+  const getInitials = (name: string) => name.trim().slice(0, 3).toUpperCase();
 
   const userScoreFormula = (
     totalPlayers: number,
@@ -175,18 +177,18 @@ const Scoreboard: React.FC = () => {
     }
   };
 
-  const getInitials = (name: string) => name.trim().slice(0, 3).toUpperCase();
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-grow p-4 overflow-x-auto space-y-4">
+      <main className="flex-grow px-4 py-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header + buttons */}
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Scoreboard</h2>
           <div className="flex gap-2 flex-wrap">
-            {rounds.length === players.length && players.length > 0 && (
+            {/* {rounds.length === players.length && players.length > 0 && (
               <Button onClick={handleExportCSV}>⬇️ Export</Button>
-            )}
+            )} */}
             <Button onClick={() => setShowForm(!showForm)} disabled={rounds.length >= players.length}>
               Add Round Data
             </Button>
@@ -214,7 +216,8 @@ const Scoreboard: React.FC = () => {
               >
                 {players.map((player, idx) => (
                   <option key={idx} value={idx}>
-                    {player}
+                    <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                    <span className="hidden md:block"> {player}</span>
                   </option>
                 ))}
               </select>
@@ -222,7 +225,8 @@ const Scoreboard: React.FC = () => {
             {players.map((player, index) => (
               <div key={index} className="grid grid-cols-4 items-center gap-2">
                 <span className={`font-medium col-span-1 ${index === winner ? "text-green-600" : ""}`}>
-                  {player} {index === winner && "(Winner)"}
+                  <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                  <span className="hidden md:block"> {player}</span> {index === winner && "(Winner)"}
                 </span>
                 <div className="col-span-1">
                   {(index === 0) && <label className="block text-sm font-semibold mb-1">Value</label>}
@@ -241,103 +245,206 @@ const Scoreboard: React.FC = () => {
                     disabled={index === winner}
                   />
                 </div>
+                <div className="col-span-1 font-mono">
+                  {showDetails && (
+                    <>
+                      VF: {valueFactorFormula(tempValues[index]).toFixed(0)}
+                      <br />
+                      Score:{" "}
+                      {userScoreFormula(
+                        players.length,
+                        tempValues.reduce((sum, v) => sum + valueFactorFormula(v), 0),
+                        valueFactorFormula(tempValues[index]),
+                        index === winner ? 0 : tempPoints[index]
+                      ).toFixed(0)}
+                    </>
+                  )}
+                </div>
               </div>
             ))}
-            <Button className="mt-4" onClick={calculateScores}>Save Round</Button>
-          </div>
-        )}
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full border table-fixed">
-            <thead>
-              <tr>
-                <th className="border p-2 sticky left-0 bg-white z-10 text-center w-24">
-                  {viewMode === "vertical" ? "Round (TVF)" : "Player"}
-                </th>
-                {(viewMode === "vertical" ? players : rounds).map((entry, idx) => (
-                  <th key={idx} className="border p-2 text-center truncate max-w-[80px]">
-                    <span className="block md:hidden uppercase truncate">
-                      {viewMode === "vertical" ? getInitials(`${entry}`) : `R${idx + 1}`}
-                    </span>
-                    <span className="hidden md:block">
-                      {viewMode === "vertical" ? `${entry}` : `Round ${idx + 1}`}
-                    </span>
-                  </th>
-                ))}
-                {viewMode === "horizontal" && (
-                  <th className="border p-2 text-center">Total</th>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {viewMode === "vertical" ? (
-                <>
-                  {rounds.map((round, rIdx) => (
-                    <tr key={rIdx}>
-                      <td className="border p-2 text-center sticky left-0 bg-white font-medium">
-                        {rIdx + 1} ({round.totalValueFactor.toFixed(0)})
-                      </td>
-                      {round.scores.map((score, idx) => (
-                        <td key={idx} className={`border p-2 text-center ${round.winner === idx ? "font-bold text-green-600" : ""}`}>
-                          <ScoreTile
-                            score={score.toFixed(0)}
-                            valueFactor={valueFactorFormula(round.values[idx])}
-                            Points={round.points[idx]}
-                            showDetails={showDetails}
-                          />
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                  <tr>
-                    <td className="border p-2 text-center sticky left-0 bg-white font-semibold">Total</td>
-                    {totalScores.map((total, idx) => (
-                      <td key={idx} className="border p-2 text-center font-semibold">{total.toFixed(0)}</td>
-                    ))}
-                  </tr>
-                </>
-              ) : (
-                players.map((player, pIdx) => (
-                  <tr key={pIdx}>
-                    <td className="border p-2 text-center sticky left-0 bg-white font-medium">
-                      <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
-                      <span className="hidden md:block">{player}</span>
-                    </td>
-                    {rounds.map((round, rIdx) => (
-                      <td key={rIdx} className={`border p-2 text-center ${round.winner === pIdx ? "font-bold text-green-600" : ""}`}>
-                        <ScoreTile
-                          score={round.scores[pIdx].toFixed(0)}
-                          valueFactor={valueFactorFormula(round.values[pIdx])}
-                          Points={round.points[pIdx]}
-                          showDetails={showDetails}
-                        />
-                      </td>
-                    ))}
-                    <td className="border p-2 text-center font-semibold">{totalScores[pIdx].toFixed(0)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-center gap-4 mt-6">
-          <Button variant="outline" onClick={handleResetGame}>Reset Game</Button>
-          <Button variant="destructive" onClick={handleStartNewGame}>Start New Game</Button>
-        </div>
-
-        {/* Congrats Modal */}
-        {showCongrats && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-6 rounded-xl shadow-xl text-center space-y-4 max-w-sm w-full">
-              <h2 className="text-2xl font-bold text-green-600">🎉 Congratulations!</h2>
-              <p className="text-lg">Player <span className="font-semibold">{winnerName}</span> is the winner!</p>
-              <Button onClick={() => setShowCongrats(false)}>Close</Button>
+            <div className="text-center mt-4">
+              <Button onClick={calculateScores} className="mr-2">
+                Submit Round
+              </Button>
+              <Button variant="outline" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}
+
+        {/* Show Congrats */}
+        {showCongrats && (
+          <div className="bg-green-100 border border-green-400 text-green-800 p-3 rounded font-semibold text-center">
+            🎉 Congratulations {winnerName}! 🎉
+          </div>
+        )}
+
+        {/* Scoreboard */}
+
+        {viewMode === "vertical" ? (
+          <div className="overflow-x-auto w-full ">
+            <div
+              className="inline-grid  w-full"
+              style={{
+                gridTemplateColumns: `minmax(140px, 140px) repeat(${players.length}, minmax(80px, 1fr))`,
+                minWidth: "max-content",
+              }}
+            >
+              {/* Header */}
+              <div
+                className="sticky left-0 bg-white border p-2 font-semibold z-20 text-center"
+                style={{ gridColumn: "1" }}
+              >
+                <span className="block md:hidden uppercase truncate">RND ↓</span>
+                <span className="hidden md:block"> Round (TVF) ↓</span>
+              </div>
+              {players.map((player, idx) => (
+                <div key={idx} className="border p-2 text-center font-semibold truncate bg-blue-100">
+                  <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                  <span className="hidden md:block"> {player}</span>
+                </div>
+              ))}
+
+              {/* Rounds */}
+              {rounds.map((round, rIdx) => (
+                <React.Fragment key={rIdx}>
+                  <div
+                    className="sticky left-0 border p-2 font-medium text-center z-10 bg-gray-100"
+                    style={{ gridColumn: "1" }}
+                  >
+                    {rIdx + 1} ({round.totalValueFactor.toFixed(0)})
+                  </div>
+                  {round.scores.map((score, idx) => (
+                    <div
+                      key={idx}
+                      className={`border p-2 text-center ${
+                        round.winner === idx ? "font-bold text-green-600" : ""
+                      }`}
+                    >
+                      <ScoreTile
+                        score={score.toFixed(0)}
+                        valueFactor={valueFactorFormula(round.values[idx])}
+                        Points={round.points[idx]}
+                        showDetails={showDetails}
+                      />
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))}
+
+              {/* Total Row */}
+              <div
+                className="sticky left-0 bg-yellow-200 border p-2 font-semibold text-center"
+                style={{ gridColumn: "1" }}
+              >                
+                <span className="block md:hidden uppercase truncate">TOT</span>
+                <span className="hidden md:block">Total</span>
+              </div>
+              {totalScores.map((total, idx) => (
+                <div key={idx} className="border p-2 text-center font-semibold  bg-gray-200">
+                  {total.toFixed(0)}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          // Horizontal mode as CSS grid with fixed header row and first column
+           <div className="overflow-x-auto w-full ">
+            <div
+              className="inline-grid  w-full"
+              style={{
+                gridTemplateColumns: `minmax(100px, 100px) repeat(${rounds.length + 1}, minmax(90px, 1fr))`,
+                minWidth: "max-content",
+                gridAutoRows: "minmax(40px, auto)",
+              }}
+            >
+              {/* Top-left empty cell */}
+              <div
+                className="sticky top-0 left-0 bg-white border p-2 font-semibold z-30 text-center"
+                style={{ gridColumn: 1, gridRow: 1 }}
+              >
+                <span className="block md:hidden uppercase truncate">PLR ↓</span>
+                <span className="hidden md:block"> Players ↓</span>
+                
+              </div>
+
+              {/* Header row: Round 1, Round 2 ... Total */}
+              {rounds.map((_, idx) => (
+                <div
+                  key={idx}
+                  className="sticky top-0 border p-2 font-semibold z-20 text-center bg-gray-200"
+                  style={{ gridColumn: idx + 2, gridRow: 1 }}
+                >
+                  <span className="block md:hidden uppercase truncate">R{idx + 1}</span>
+                  <span className="hidden md:block">Round {idx + 1}</span>
+                </div>
+              ))}
+
+              <div
+                className="sticky top-0 bg-yellow-200 border p-2 font-semibold z-20 text-center"
+                style={{ gridColumn: rounds.length + 2, gridRow: 1 }}
+              >
+                <span className="block md:hidden uppercase truncate">TOT</span>
+                <span className="hidden md:block">Total</span>
+              </div>
+
+              {/* Player names column */}
+              {players.map((player, pIdx) => (
+                <div
+                  key={pIdx}
+                  className="sticky left-0 border p-2 font-semibold z-20 text-left truncate bg-blue-100"
+                  style={{ gridColumn: 1, gridRow: pIdx + 2 }}
+                  title={player}
+                >
+                  <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                  <span className="hidden md:block"> {player}</span>
+                </div>
+              ))}
+
+              {/* Scores */}
+              {rounds.map((round, rIdx) =>
+                players.map((_, pIdx) => (
+                  <div
+                    key={`${rIdx}-${pIdx}`}
+                    className={`border p-2 text-center ${
+                      round.winner === pIdx ? "font-bold text-green-600" : ""
+                    }`}
+                    style={{ gridColumn: rIdx + 2, gridRow: pIdx + 2 }}
+                  >
+                    <ScoreTile
+                      score={round.scores[pIdx].toFixed(0)}
+                      valueFactor={valueFactorFormula(round.values[pIdx])}
+                      Points={round.points[pIdx]}
+                      showDetails={showDetails}
+                    />
+                  </div>
+                ))
+              )}
+
+              {/* Total scores row */}
+              {players.map((_, pIdx) => (
+                <div
+                  key={`total-${pIdx}`}
+                  className="border p-2 font-semibold text-center bg-gray-200"
+                  style={{ gridColumn: rounds.length + 2, gridRow: pIdx + 2 }}
+                >
+                  {totalScores[pIdx].toFixed(0)}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-2 mt-4 flex-wrap justify-center">
+          <Button variant="destructive" onClick={handleResetGame}>
+            Reset Game
+          </Button>
+          <Button variant="outline" onClick={handleStartNewGame}>
+            Start New Game
+          </Button>
+        </div>
+        </div>
       </main>
       <Footer />
     </div>
