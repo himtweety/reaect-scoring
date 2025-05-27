@@ -5,6 +5,7 @@ import ScoreTile from "../components/ScoreTile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
+import { saveAs } from "file-saver";
 
 interface RoundData {
   values: number[];
@@ -140,21 +141,21 @@ const Scoreboard: React.FC = () => {
     setShowForm(false);
   }
 
-  // const handleExportCSV = () => {
-  //   const headers = ["Round", ...players];
-  //   const rows = rounds.map((round, i) => [
-  //     `Round ${i + 1}`,
-  //     ...round.scores.map((s) => s.toFixed(0)),
-  //   ]);
-  //   const totalRow = ["Total", ...totalScores.map((t) => t.toFixed(0))];
+  const handleExportCSV = () => {
+    const headers = ["Round", ...players];
+    const rows = rounds.map((round, i) => [
+      `Round ${i + 1}`,
+      ...round.scores.map((s) => s.toFixed(0)),
+    ]);
+    const totalRow = ["Total", ...totalScores.map((t) => t.toFixed(0))];
 
-  //   const csvContent = [headers, ...rows, totalRow]
-  //     .map((row) => row.join(","))
-  //     .join("\n");
+    const csvContent = [headers, ...rows, totalRow]
+      .map((row) => row.join(","))
+      .join("\n");
 
-  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  //   saveAs(blob, "scoreboard.csv");
-  // };
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, "scoreboard.csv");
+  };
 
   const handleResetGame = () => {
     if (window.confirm("Are you sure you want to reset the current game?")) {
@@ -185,9 +186,9 @@ const Scoreboard: React.FC = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Scoreboard</h2>
           <div className="flex gap-2 flex-wrap">
-            {/* {rounds.length === players.length && players.length > 0 && (
+            {rounds.length === players.length && players.length > 0 && (
               <Button onClick={handleExportCSV}>⬇️ Export</Button>
-            )} */}
+            )}
             <Button onClick={() => setShowForm(!showForm)} disabled={rounds.length >= players.length}>
               Add Round Data
             </Button>
