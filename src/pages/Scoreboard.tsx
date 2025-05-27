@@ -22,7 +22,6 @@ const Scoreboard: React.FC = () => {
   const [tempPoints, setTempPoints] = useState<number[]>([]);
   const [winner, setWinner] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"vertical" | "horizontal">("vertical");
-  const [editingRoundIndex, setEditingRoundIndex] = useState<number | null>(null);
   const [showCongrats, setShowCongrats] = useState(false);
   const [winnerName, setWinnerName] = useState("");
 
@@ -138,17 +137,6 @@ const Scoreboard: React.FC = () => {
     setShowForm(false);
   }
 
-  const handleEditRound = (roundIdx: number) => {
-    setEditingRoundIndex(roundIdx);
-  };
-
-  const handleSaveEdit = (roundIdx: number, updated: RoundData) => {
-    const updatedRounds = [...rounds];
-    updatedRounds[roundIdx] = updated;
-    setRounds(updatedRounds);
-    localStorage.setItem("rounds", JSON.stringify(updatedRounds));
-    setEditingRoundIndex(null);
-  };
 
   const handleExportCSV = () => {
     const headers = ["Round", ...players];
