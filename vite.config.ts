@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "robots.txt", "apple-touch-icon.png"],
       manifest: {
-        name: "Offline Scoreboard",
-        short_name: "Scoreboard",
+        name: "Pattebaaj Scoreboard",
+        short_name: "Pattebaaj",
         description: "A custom offline-capable scoreboard app",
         theme_color: "#ffffff",
         background_color: "#ffffff",
