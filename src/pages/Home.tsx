@@ -36,17 +36,45 @@ const Home: React.FC = () => {
       setError("Please enter all player names.");
       return;
     }
-    for (const name of playerNames) {
-      if (!name.trim()) {
-        setError("Player names cannot be empty.");
-        return;
-      }
+
+    const trimmedNames = playerNames.map(name => name.trim());
+    if (trimmedNames.some(name => name === "")) {
+      setError("Player names cannot be empty.");
+      return;
     }
 
-    localStorage.setItem("players", JSON.stringify(playerNames.slice(0, 10)));
+    const duplicateIndices = getDuplicateNameIndices(trimmedNames);
+    if (duplicateIndices.size > 0) {
+      setError("Player names must be unique.");
+      return;
+    }
+
+
+    localStorage.setItem("players", JSON.stringify(trimmedNames.slice(0, 10)));
     localStorage.setItem("rounds", JSON.stringify([])); // clear rounds on new game
     navigate("/scoreboard");
   };
+  const getDuplicateNameIndices = (names: string[]) => {
+    const nameMap: Record<string, number[]> = {};
+    names.forEach((name, idx) => {
+      const key = name.trim().toLowerCase();
+      if (!key) return;
+      if (!nameMap[key]) {
+        nameMap[key] = [];
+      }
+      nameMap[key].push(idx);
+    });
+
+    const duplicates = new Set<number>();
+    Object.values(nameMap).forEach((indices) => {
+      if (indices.length > 1) {
+        indices.forEach((i) => duplicates.add(i));
+      }
+    });
+
+    return duplicates;
+  };
+
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4">
@@ -70,17 +98,27 @@ const Home: React.FC = () => {
         {error && <p className="text-red-600 mt-1">{error}</p>}
       </div>
 
-      {new Array(numPlayers).fill(null).map((_, idx) => (
-        <div key={idx} className="mb-3 w-full max-w-sm">
-          <label className="block mb-1 font-medium">Player {idx + 1} Name:</label>
-          <Input
-            type="text"
-            placeholder={`Player ${idx + 1}`}
-            value={playerNames[idx] || ""}
-            onChange={(e) => handleNameChange(idx, e.target.value)}
-          />
-        </div>
-      ))}
+      {new Array(numPlayers).fill(null).map((_, idx) => {
+        const duplicateIndices = getDuplicateNameIndices(playerNames);
+        const isDuplicate = duplicateIndices.has(idx);
+
+        return (
+          <div key={idx} className="mb-3 w-full max-w-sm">
+            <label className="block mb-1 font-medium">Player {idx + 1} Name:</label>
+            <Input
+              type="text"
+              placeholder={`Player ${idx + 1}`}
+              value={playerNames[idx] || ""}
+              onChange={(e) => handleNameChange(idx, e.target.value)}
+              className={isDuplicate ? "border-red-500" : ""}
+            />
+            {isDuplicate && (
+              <p className="text-sm text-red-600 mt-1">Name must be unique</p>
+            )}
+          </div>
+        );
+      })}
+
 
       <Button onClick={handleStartGame} className="mt-4">Start Game</Button>
     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import ScoreTile from "../components/ScoreTile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ const Scoreboard: React.FC = () => {
   const [players, setPlayers] = useState<string[]>([]);
   const [rounds, setRounds] = useState<RoundData[]>([]);
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
   const [tempValues, setTempValues] = useState<number[]>([]);
   const [tempPoints, setTempPoints] = useState<number[]>([]);
   const [winner, setWinner] = useState<number>(0);
@@ -137,7 +139,6 @@ const Scoreboard: React.FC = () => {
     setShowForm(false);
   }
 
-
   const handleExportCSV = () => {
     const headers = ["Round", ...players];
     const rows = rounds.map((round, i) => [
@@ -174,6 +175,8 @@ const Scoreboard: React.FC = () => {
     }
   };
 
+  const getInitials = (name: string) => name.trim().slice(0, 3).toUpperCase();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
@@ -181,22 +184,25 @@ const Scoreboard: React.FC = () => {
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-bold">Scoreboard</h2>
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => setViewMode(viewMode === "vertical" ? "horizontal" : "vertical")}>
-              Switch to {viewMode === "vertical" ? "Horizontal" : "Vertical"}
-            </Button>
-
             {rounds.length === players.length && players.length > 0 && (
-              <Button onClick={handleExportCSV}>Export CSV</Button>
+              <Button onClick={handleExportCSV}>⬇️ Export</Button>
             )}
-
             <Button onClick={() => setShowForm(!showForm)} disabled={rounds.length >= players.length}>
               Add Round Data
             </Button>
           </div>
-
         </div>
 
-        {/* Form rendering here */}
+        <div className="flex justify-between items-center flex-wrap w-full">
+          <Button onClick={() => setShowDetails(!showDetails)} disabled={rounds.length === 0}>
+            {showDetails ? "Hide" : "Show"} Details
+          </Button>
+          <Button onClick={() => setViewMode(viewMode === "vertical" ? "horizontal" : "vertical")}>
+            Switch to {viewMode === "vertical" ? "Horizontal" : "Vertical"}
+          </Button>
+        </div>
+
+        {/* Add Round Form */}
         {showForm && (
           <div className="border p-4 rounded space-y-4">
             <div>
@@ -213,24 +219,21 @@ const Scoreboard: React.FC = () => {
                 ))}
               </select>
             </div>
-
             {players.map((player, index) => (
               <div key={index} className="grid grid-cols-4 items-center gap-2">
                 <span className={`font-medium col-span-1 ${index === winner ? "text-green-600" : ""}`}>
                   {player} {index === winner && "(Winner)"}
                 </span>
-
                 <div className="col-span-1">
-                  <label className="block text-sm font-semibold mb-1">Value</label>
+                  {(index === 0) && <label className="block text-sm font-semibold mb-1">Value</label>}
                   <Input
                     type="number"
                     value={tempValues[index]}
                     onChange={(e) => handleValueChange(index, parseInt(e.target.value) || 0)}
                   />
                 </div>
-
                 <div className="col-span-1">
-                  <label className="block text-sm font-semibold mb-1">Point</label>
+                  {(index === 0) && <label className="block text-sm font-semibold mb-1">Point</label>}
                   <Input
                     type="number"
                     value={index === winner ? 0 : tempPoints[index]}
@@ -240,71 +243,86 @@ const Scoreboard: React.FC = () => {
                 </div>
               </div>
             ))}
-
             <Button className="mt-4" onClick={calculateScores}>Save Round</Button>
           </div>
         )}
 
-        {/* Table rendering */}
-        {viewMode === "vertical" ? (
-          <table className="min-w-full border">
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full border table-fixed">
             <thead>
               <tr>
-                <th className="border p-2">Round (TVF)</th>
-                {players.map((player, idx) => (
-                  <th key={idx} className="border p-2">{player}</th>
+                <th className="border p-2 sticky left-0 bg-white z-10 text-center w-24">
+                  {viewMode === "vertical" ? "Round (TVF)" : "Player"}
+                </th>
+                {(viewMode === "vertical" ? players : rounds).map((entry, idx) => (
+                  <th key={idx} className="border p-2 text-center truncate max-w-[80px]">
+                    <span className="block md:hidden uppercase truncate">
+                      {viewMode === "vertical" ? getInitials(`${entry}`) : `R${idx + 1}`}
+                    </span>
+                    <span className="hidden md:block">
+                      {viewMode === "vertical" ? `${entry}` : `Round ${idx + 1}`}
+                    </span>
+                  </th>
                 ))}
+                {viewMode === "horizontal" && (
+                  <th className="border p-2 text-center">Total</th>
+                )}
               </tr>
             </thead>
             <tbody>
-              {rounds.map((round, rIdx) => (
-                <tr key={rIdx}>
-                  <td className="border p-2 text-center">
-                    {rIdx + 1} ({round.totalValueFactor.toFixed(0)})
-                  </td>
-                  {round.scores.map((score, idx) => (
-                    <td key={idx} className={`border p-2 text-center ${round.winner === idx ? "font-bold text-green-600" : ""}`}>
-                      {score.toFixed(0)} ({valueFactorFormula(round.values[idx])}, {round.points[idx]})
-                    </td>
-                  ))}
-                </tr>
-              ))}
-              <tr>
-                <td className="border p-2 font-semibold text-center">Total</td>
-                {totalScores.map((total, idx) => (
-                  <td key={idx} className="border p-2 text-center font-semibold">{total.toFixed(0)}</td>
-                ))}
-              </tr>
-            </tbody>
-          </table>
-        ) : (
-          <table className="min-w-full border">
-            <thead>
-              <tr>
-                <th className="border p-2">Player</th>
-                {rounds.map((_, idx) => (
-                  <th key={idx} className="border p-2">R{idx + 1}</th>
-                ))}
-                <th className="border p-2">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {players.map((player, pIdx) => (
-                <tr key={pIdx}>
-                  <td className="border p-2 font-medium">{player}</td>
+              {viewMode === "vertical" ? (
+                <>
                   {rounds.map((round, rIdx) => (
-                    <td key={rIdx} className={`border p-2 text-center ${round.winner === pIdx ? "font-bold text-green-600" : ""}`}>
-                      {round.scores[pIdx].toFixed(0)}
-                    </td>
+                    <tr key={rIdx}>
+                      <td className="border p-2 text-center sticky left-0 bg-white font-medium">
+                        {rIdx + 1} ({round.totalValueFactor.toFixed(0)})
+                      </td>
+                      {round.scores.map((score, idx) => (
+                        <td key={idx} className={`border p-2 text-center ${round.winner === idx ? "font-bold text-green-600" : ""}`}>
+                          <ScoreTile
+                            score={score.toFixed(0)}
+                            valueFactor={valueFactorFormula(round.values[idx])}
+                            Points={round.points[idx]}
+                            showDetails={showDetails}
+                          />
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                  <td className="border p-2 font-semibold text-center">{totalScores[pIdx].toFixed(0)}</td>
-                </tr>
-              ))}
+                  <tr>
+                    <td className="border p-2 text-center sticky left-0 bg-white font-semibold">Total</td>
+                    {totalScores.map((total, idx) => (
+                      <td key={idx} className="border p-2 text-center font-semibold">{total.toFixed(0)}</td>
+                    ))}
+                  </tr>
+                </>
+              ) : (
+                players.map((player, pIdx) => (
+                  <tr key={pIdx}>
+                    <td className="border p-2 text-center sticky left-0 bg-white font-medium">
+                      <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                      <span className="hidden md:block">{player}</span>
+                    </td>
+                    {rounds.map((round, rIdx) => (
+                      <td key={rIdx} className={`border p-2 text-center ${round.winner === pIdx ? "font-bold text-green-600" : ""}`}>
+                        <ScoreTile
+                          score={round.scores[pIdx].toFixed(0)}
+                          valueFactor={valueFactorFormula(round.values[pIdx])}
+                          Points={round.points[pIdx]}
+                          showDetails={showDetails}
+                        />
+                      </td>
+                    ))}
+                    <td className="border p-2 text-center font-semibold">{totalScores[pIdx].toFixed(0)}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
-        )}
+        </div>
 
-        {/* Action buttons */}
+        {/* Actions */}
         <div className="flex justify-center gap-4 mt-6">
           <Button variant="outline" onClick={handleResetGame}>Reset Game</Button>
           <Button variant="destructive" onClick={handleStartNewGame}>Start New Game</Button>
