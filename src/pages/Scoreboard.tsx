@@ -3,7 +3,6 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import ScoreTile from "../components/ScoreTile";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
