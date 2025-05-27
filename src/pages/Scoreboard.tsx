@@ -141,21 +141,21 @@ const Scoreboard: React.FC = () => {
     setShowForm(false);
   }
 
-  const handleExportCSV = () => {
-    const headers = ["Round", ...players];
-    const rows = rounds.map((round, i) => [
-      `Round ${i + 1}`,
-      ...round.scores.map((s) => s.toFixed(0)),
-    ]);
-    const totalRow = ["Total", ...totalScores.map((t) => t.toFixed(0))];
+  // const handleExportCSV = () => {
+  //   const headers = ["Round", ...players];
+  //   const rows = rounds.map((round, i) => [
+  //     `Round ${i + 1}`,
+  //     ...round.scores.map((s) => s.toFixed(0)),
+  //   ]);
+  //   const totalRow = ["Total", ...totalScores.map((t) => t.toFixed(0))];
 
-    const csvContent = [headers, ...rows, totalRow]
-      .map((row) => row.join(","))
-      .join("\n");
+  //   const csvContent = [headers, ...rows, totalRow]
+  //     .map((row) => row.join(","))
+  //     .join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, "scoreboard.csv");
-  };
+  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  //   saveAs(blob, "scoreboard.csv");
+  // };
 
   const handleResetGame = () => {
     if (window.confirm("Are you sure you want to reset the current game?")) {
@@ -206,11 +206,11 @@ const Scoreboard: React.FC = () => {
 
         {/* Add Round Form */}
         {showForm && (
-          <div className="border p-4 rounded space-y-4">
+          <div className="border border-gray-400 p-4 rounded space-y-4">
             <div>
               <label className="font-medium">Select Winner: </label>
               <select
-                className="ml-2 p-1 border rounded"
+                className="ml-2 p-1 border border-gray-400 rounded"
                 value={winner}
                 onChange={(e) => setWinner(parseInt(e.target.value))}
               >
@@ -275,7 +275,7 @@ const Scoreboard: React.FC = () => {
 
         {/* Show Congrats */}
         {showCongrats && (
-          <div className="bg-green-100 border border-green-400 text-green-800 p-3 rounded font-semibold text-center">
+          <div className="bg-green-100 border border-gray-400 border-green-400 text-green-800 p-3 rounded font-semibold text-center">
             🎉 Congratulations {winnerName}! 🎉
           </div>
         )}
@@ -293,14 +293,14 @@ const Scoreboard: React.FC = () => {
             >
               {/* Header */}
               <div
-                className="sticky left-0 bg-white border p-2 font-semibold z-20 text-center"
+                className="sticky left-0 bg-white border border-gray-400 p-2 font-semibold z-20 text-center"
                 style={{ gridColumn: "1" }}
               >
                 <span className="block md:hidden uppercase truncate">RND ↓</span>
                 <span className="hidden md:block"> Round (TVF) ↓</span>
               </div>
               {players.map((player, idx) => (
-                <div key={idx} className="border p-2 text-center font-semibold truncate bg-blue-100">
+                <div key={idx} className="border border-gray-400 p-2 text-center font-semibold truncate bg-blue-100">
                   <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
                   <span className="hidden md:block"> {player}</span>
                 </div>
@@ -310,7 +310,7 @@ const Scoreboard: React.FC = () => {
               {rounds.map((round, rIdx) => (
                 <React.Fragment key={rIdx}>
                   <div
-                    className="sticky left-0 border p-2 font-medium text-center z-10 bg-gray-100"
+                    className="sticky left-0 border border-gray-400 p-2 font-medium text-center z-10 bg-gray-100"
                     style={{ gridColumn: "1" }}
                   >
                     {rIdx + 1} ({round.totalValueFactor.toFixed(0)})
@@ -318,7 +318,11 @@ const Scoreboard: React.FC = () => {
                   {round.scores.map((score, idx) => (
                     <div
                       key={idx}
-                      className={`border p-2 text-center ${
+                      className={`border border-gray-400 p-2 text-center 
+                        ${
+                          rIdx % 2 === 0 ? "bg-gray-200" : "bg-white"
+                        }
+                        ${
                         round.winner === idx ? "font-bold text-green-600" : ""
                       }`}
                     >
@@ -335,14 +339,14 @@ const Scoreboard: React.FC = () => {
 
               {/* Total Row */}
               <div
-                className="sticky left-0 bg-yellow-200 border p-2 font-semibold text-center"
+                className="sticky left-0 bg-yellow-200 border border-gray-400 p-2 font-semibold text-center"
                 style={{ gridColumn: "1" }}
               >                
                 <span className="block md:hidden uppercase truncate">TOT</span>
                 <span className="hidden md:block">Total</span>
               </div>
               {totalScores.map((total, idx) => (
-                <div key={idx} className="border p-2 text-center font-semibold  bg-gray-200">
+                <div key={idx} className="border border-gray-400 p-2 text-center font-semibold  bg-yellow-100">
                   {total.toFixed(0)}
                 </div>
               ))}
@@ -361,7 +365,7 @@ const Scoreboard: React.FC = () => {
             >
               {/* Top-left empty cell */}
               <div
-                className="sticky top-0 left-0 bg-white border p-2 font-semibold z-30 text-center"
+                className="sticky top-0 left-0 bg-white border border-gray-400 p-2 font-semibold z-30 text-center"
                 style={{ gridColumn: 1, gridRow: 1 }}
               >
                 <span className="block md:hidden uppercase truncate">PLR ↓</span>
@@ -373,7 +377,7 @@ const Scoreboard: React.FC = () => {
               {rounds.map((_, idx) => (
                 <div
                   key={idx}
-                  className="sticky top-0 border p-2 font-semibold z-20 text-center bg-gray-200"
+                  className="sticky top-0 border border-gray-400 p-2 font-semibold z-20 text-center bg-gray-200"
                   style={{ gridColumn: idx + 2, gridRow: 1 }}
                 >
                   <span className="block md:hidden uppercase truncate">R{idx + 1}</span>
@@ -382,7 +386,7 @@ const Scoreboard: React.FC = () => {
               ))}
 
               <div
-                className="sticky top-0 bg-yellow-200 border p-2 font-semibold z-20 text-center"
+                className="sticky top-0 bg-yellow-200 border border-gray-400 p-2 font-semibold z-20 text-center"
                 style={{ gridColumn: rounds.length + 2, gridRow: 1 }}
               >
                 <span className="block md:hidden uppercase truncate">TOT</span>
@@ -393,7 +397,7 @@ const Scoreboard: React.FC = () => {
               {players.map((player, pIdx) => (
                 <div
                   key={pIdx}
-                  className="sticky left-0 border p-2 font-semibold z-20 text-left truncate bg-blue-100"
+                  className="sticky left-0 border border-gray-400 p-2 font-semibold z-20 text-left truncate bg-blue-100"
                   style={{ gridColumn: 1, gridRow: pIdx + 2 }}
                   title={player}
                 >
@@ -407,7 +411,11 @@ const Scoreboard: React.FC = () => {
                 players.map((_, pIdx) => (
                   <div
                     key={`${rIdx}-${pIdx}`}
-                    className={`border p-2 text-center ${
+                    className={`border border-gray-400 p-2 text-center 
+                      ${
+                          pIdx % 2 === 0 ? "bg-gray-200" : "bg-white"
+                        }
+                      ${
                       round.winner === pIdx ? "font-bold text-green-600" : ""
                     }`}
                     style={{ gridColumn: rIdx + 2, gridRow: pIdx + 2 }}
@@ -426,7 +434,7 @@ const Scoreboard: React.FC = () => {
               {players.map((_, pIdx) => (
                 <div
                   key={`total-${pIdx}`}
-                  className="border p-2 font-semibold text-center bg-gray-200"
+                  className="border border-gray-400 p-2 font-semibold text-center bg-yellow-100"
                   style={{ gridColumn: rounds.length + 2, gridRow: pIdx + 2 }}
                 >
                   {totalScores[pIdx].toFixed(0)}
