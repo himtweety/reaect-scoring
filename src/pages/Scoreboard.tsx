@@ -5,7 +5,6 @@ import ScoreTile from "../components/ScoreTile";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { saveAs } from "file-saver";
 
 interface RoundData {
   values: number[];
