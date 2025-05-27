@@ -84,17 +84,17 @@ const Home: React.FC = () => {
         <label className="block font-semibold mb-2">Number of Players (2-10):</label>
         
         <Select value={String(numPlayers)} onValueChange={(value) => handleNumPlayersChange(Number(value))}>
-        <SelectTrigger className="w-full border px-4 py-2 rounded-md text-left">
-          <SelectValue placeholder="Select number of players" />
-        </SelectTrigger>
-        <SelectContent>
-          {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
-            <SelectItem key={n} value={String(n)}>
-              {n}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+          <SelectTrigger className="w-full border px-4 py-2 rounded-md text-left">
+            <SelectValue placeholder="Select number of players" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 9 }, (_, i) => i + 2).map((n) => (
+              <SelectItem key={n} value={String(n)}>
+                {n}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         {error && <p className="text-red-600 mt-1">{error}</p>}
       </div>
 

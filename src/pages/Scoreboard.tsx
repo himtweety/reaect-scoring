@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { saveAs } from "file-saver";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface RoundData {
   values: number[];
@@ -192,10 +193,10 @@ const Scoreboard: React.FC = () => {
             </Button>
             <Button onClick={() => setShowDetails(!showDetails)} disabled={rounds.length === 0}>
               {showDetails ? ( 
-                <><span className="block md:hidden uppercase truncate">🙈</span>
+                <><span className="block md:hidden uppercase truncate">👁</span>
                 <span className="hidden md:block"> Show Hands</span></>
               ) : ( 
-                <><span className="block md:hidden uppercase truncate">👁</span>
+                <><span className="block md:hidden uppercase truncate">🙈</span>
                 <span className="hidden md:block"> Hide Hands</span></>
               )}
             </Button>
@@ -224,19 +225,25 @@ const Scoreboard: React.FC = () => {
         {/* Add Round Form */}
         {showForm && (
           <div className="border border-gray-400 p-4 rounded space-y-4">
-            <div>
-              <label className="font-medium">Select Winner: </label>
-              <select
-                className="ml-2 p-1 border border-gray-400 rounded"
-                value={winner}
-                onChange={(e) => setWinner(parseInt(e.target.value))}
-              >
-                {players.map((player, idx) => (
-                  <option key={idx} value={idx}>
-                    {getInitials(player)}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-4 items-center gap-2">
+              <label className="font-medium col-span-1"> Winner: </label>
+              <span className="col-span-3 w-full max-w-sm">
+                <Select
+                  value={winner.toString()}
+                  onValueChange={(val) => setWinner(parseInt(val))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select winner" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {players.map((player, idx) => (
+                      <SelectItem key={idx} value={idx.toString()}>
+                        {getInitials(player)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </span>
             </div>
             {players.map((player, index) => (
               <div key={index} className="grid grid-cols-4 items-center gap-2">
@@ -246,33 +253,53 @@ const Scoreboard: React.FC = () => {
                 </span>
                 <div className="col-span-1">
                   {(index === 0) && <label className="block text-sm font-semibold mb-1">Value</label>}
-                  <Input
-                    type="number"
-                    value={tempValues[index]}
-                    onChange={(e) => handleValueChange(index, parseInt(e.target.value) || 0)}
-                  />
+                  <Select
+                    value={tempValues[index].toString()}
+                    onValueChange={(val) => handleValueChange(index, parseInt(val))}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select value" defaultValue="0">
+                        {tempValues[index] !== undefined ? tempValues[index] : "Select value"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 23 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {i}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-1">
                   {(index === 0) && <label className="block text-sm font-semibold mb-1">Point</label>}
-                  <Input
-                    type="number"
-                    value={index === winner ? 0 : tempPoints[index]}
-                    onChange={(e) => handlePointChange(index, parseInt(e.target.value) || 0)}
+                  <Select
+                    value={index === winner ? "0" : tempPoints[index]?.toString()}
+                    onValueChange={(value) => handlePointChange(index, parseInt(value))}
                     disabled={index === winner}
-                  />
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select value" defaultValue="0">
+                        {tempPoints[index] !== undefined ? tempPoints[index] : "Select value"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 11 }, (_, i) => (
+                        <SelectItem key={i} value={i.toString()}>
+                          {i}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="col-span-1 font-mono">
+                  
                   {showDetails && (
                     <>
-                      VF: {valueFactorFormula(tempValues[index]).toFixed(0)}
-                      <br />
-                      Score:{" "}
-                      {userScoreFormula(
-                        players.length,
-                        tempValues.reduce((sum, v) => sum + valueFactorFormula(v), 0),
-                        valueFactorFormula(tempValues[index]),
-                        index === winner ? 0 : tempPoints[index]
-                      ).toFixed(0)}
+                    <div className="flex items-center gap-1">
+                      <span className="block md:hidden uppercase truncate">VF: {valueFactorFormula(tempValues[index]).toFixed(0)}</span>
+                      <span className="hidden md:block">Value Factor: {valueFactorFormula(tempValues[index]).toFixed(0)}</span>
+                    </div>  
                     </>
                   )}
                 </div>
