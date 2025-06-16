@@ -13,6 +13,7 @@ interface RoundData {
   scores: number[];
   winner: number;
   totalValueFactor: number;
+  kickedPlayers?: number[];
 }
 
 const Scoreboard: React.FC = () => {
@@ -26,6 +27,8 @@ const Scoreboard: React.FC = () => {
   const [viewMode, setViewMode] = useState<"vertical" | "horizontal">("vertical");
   const [showCongrats, setShowCongrats] = useState(false);
   const [winnerName, setWinnerName] = useState("");
+  const [kickedPlayers, setKickedPlayers] = useState<number[]>([]);
+  const [recalculateMode, setRecalculateMode] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
@@ -48,14 +51,20 @@ const Scoreboard: React.FC = () => {
 
     const storedRoundsRaw = JSON.parse(localStorage.getItem("rounds") || "[]");
 
+    // Get kicked players from the latest round
+    const latestRound = storedRoundsRaw[storedRoundsRaw.length - 1];
+    if (latestRound?.kickedPlayers) {
+      setKickedPlayers(latestRound.kickedPlayers);
+    }
+
     const normalizedRounds: RoundData[] = storedRoundsRaw.map((round: any) => {
       if (!round.scores) {
-        const numPlayers = storedPlayers.length;
+        const activePlayers = storedPlayers.length - (round.kickedPlayers?.length || 0);
         const valueFactors = round.values.map((value: number) => valueFactorFormula(value));
         const totalValueFactor = valueFactors.reduce((sum: number, val: number) => sum + val, 0);
         const rawScores = valueFactors.map(
           (vf: number, i: number) =>
-            userScoreFormula(numPlayers, totalValueFactor, vf, round.points[i])
+            userScoreFormula(activePlayers, totalValueFactor, vf, round.points[i])
         );
         const sumOfOthers = rawScores.reduce(
           (sum: number, score: number, i: number) => (i === round.winner ? sum : sum + score),
@@ -76,7 +85,13 @@ const Scoreboard: React.FC = () => {
   }, []);
 
   const totalScores = players.map((_, index) =>
-    rounds.reduce((acc, round) => acc + (round.scores?.[index] ?? 0), 0)
+    rounds.reduce((acc, round) => {
+      // Only count scores for active players or if the player was active in that round
+      if (!kickedPlayers.includes(index) || !round.kickedPlayers?.includes(index)) {
+        return acc + (round.scores?.[index] ?? 0);
+      }
+      return acc;
+    }, 0)
   );
 
   useEffect(() => {
@@ -89,16 +104,72 @@ const Scoreboard: React.FC = () => {
   }, [rounds]);
 
   const handleValueChange = (index: number, value: number) => {
+    if (kickedPlayers.includes(index)) return; // Prevent changes for kicked players
     const updated = [...tempValues];
     updated[index] = Math.max(0, value);
     setTempValues(updated);
   };
 
   const handlePointChange = (index: number, value: number) => {
-    if (index === winner) return;
+    if (index === winner || kickedPlayers.includes(index)) return; // Prevent changes for kicked players
     const updated = [...tempPoints];
     updated[index] = Math.min(10, Math.max(0, value));
     setTempPoints(updated);
+  };
+
+  const handleStartNewGame = () => {
+    if (window.confirm("Are you sure you want to start a new game?")) {
+      localStorage.removeItem("players");
+      localStorage.removeItem("rounds");
+      navigate("/");
+      setShowCongrats(false);
+      setWinnerName("");
+    }
+  };
+
+  const handleKickPlayer = (playerIndex: number) => {
+    if (window.confirm(`Are you sure you want to kick ${players[playerIndex]}?`)) {
+      const newKickedPlayers = [...kickedPlayers, playerIndex];
+      setKickedPlayers(newKickedPlayers);
+      
+      if (recalculateMode) {
+        // Recalculate all rounds with the new player count
+        const updatedRounds = rounds.map(round => {
+          const activePlayers = players.length - newKickedPlayers.length;
+          const valueFactors = round.values.map((value) => valueFactorFormula(value));
+          const totalValueFactor = valueFactors.reduce((sum, val) => sum + val, 0);
+
+          const adjustedPoints = [...round.points];
+          adjustedPoints[round.winner] = 0;
+
+          const rawScores = valueFactors.map((vf, i) =>
+            userScoreFormula(activePlayers, totalValueFactor, vf, adjustedPoints[i])
+          );
+          const sumOfOthers = rawScores.reduce(
+            (sum, score, i) => (i === round.winner ? sum : sum + score),
+            0
+          );
+          rawScores[round.winner] = -sumOfOthers;
+
+          return {
+            ...round,
+            scores: rawScores,
+            totalValueFactor,
+            kickedPlayers: newKickedPlayers
+          };
+        });
+        setRounds(updatedRounds);
+        localStorage.setItem("rounds", JSON.stringify(updatedRounds));
+      } else {
+        // Just mark the player as kicked in the current round
+        const updatedRounds = rounds.map(round => ({
+          ...round,
+          kickedPlayers: newKickedPlayers
+        }));
+        setRounds(updatedRounds);
+        localStorage.setItem("rounds", JSON.stringify(updatedRounds));
+      }
+    }
   };
 
   function calculateScores() {
@@ -107,15 +178,29 @@ const Scoreboard: React.FC = () => {
       return;
     }
 
-    const numPlayers = players.length;
-    const valueFactors = tempValues.map((value) => valueFactorFormula(value));
+    const activePlayers = players.length - kickedPlayers.length;
+    if (activePlayers < 2) {
+      alert("Need at least 2 active players to continue the game.");
+      return;
+    }
+
+    // Set values and points to 0 for kicked players
+    const adjustedValues = tempValues.map((value, index) => 
+      kickedPlayers.includes(index) ? 0 : value
+    );
+    const adjustedPoints = tempPoints.map((point, index) => 
+      kickedPlayers.includes(index) ? 0 : point
+    );
+
+    const valueFactors = adjustedValues.map((value) => valueFactorFormula(value));
     const totalValueFactor = valueFactors.reduce((sum, val) => sum + val, 0);
 
-    const adjustedPoints = [...tempPoints];
+    // Set winner's points to 0
     adjustedPoints[winner] = 0;
 
     const rawScores = valueFactors.map((vf, i) =>
-      userScoreFormula(numPlayers, totalValueFactor, vf, adjustedPoints[i])
+      kickedPlayers.includes(i) ? 0 : // Set score to 0 for kicked players
+      userScoreFormula(activePlayers, totalValueFactor, vf, adjustedPoints[i])
     );
     const sumOfOthers = rawScores.reduce(
       (sum, score, i) => (i === winner ? sum : sum + score),
@@ -124,19 +209,20 @@ const Scoreboard: React.FC = () => {
     rawScores[winner] = -sumOfOthers;
 
     const newRound: RoundData = {
-      values: [...tempValues],
+      values: adjustedValues,
       points: adjustedPoints,
       scores: rawScores,
       winner,
       totalValueFactor,
+      kickedPlayers: [...kickedPlayers]
     };
 
     const updatedRounds = [...rounds, newRound];
     setRounds(updatedRounds);
     localStorage.setItem("rounds", JSON.stringify(updatedRounds));
 
-    setTempValues(new Array(numPlayers).fill(0));
-    setTempPoints(new Array(numPlayers).fill(0));
+    setTempValues(new Array(players.length).fill(0));
+    setTempPoints(new Array(players.length).fill(0));
     setWinner(0);
     setShowForm(false);
   }
@@ -160,6 +246,7 @@ const Scoreboard: React.FC = () => {
   const handleResetGame = () => {
     if (window.confirm("Are you sure you want to reset the current game?")) {
       setRounds([]);
+      setKickedPlayers([]);
       localStorage.setItem("rounds", JSON.stringify([]));
       setShowForm(false);
       setShowCongrats(false);
@@ -167,13 +254,56 @@ const Scoreboard: React.FC = () => {
     }
   };
 
-  const handleStartNewGame = () => {
-    if (window.confirm("Are you sure you want to start a new game?")) {
-      localStorage.removeItem("players");
-      localStorage.removeItem("rounds");
-      navigate("/");
-      setShowCongrats(false);
-      setWinnerName("");
+  const handleRemoveKickedPlayers = () => {
+    if (kickedPlayers.length === 0) {
+      alert("No players have been kicked out.");
+      return;
+    }
+
+    if (window.confirm("Are you sure you want to permanently remove all kicked players? This will recalculate all rounds with remaining players.")) {
+      // Remove kicked players from the players array
+      const remainingPlayers = players.filter((_, index) => !kickedPlayers.includes(index));
+      setPlayers(remainingPlayers);
+      localStorage.setItem("players", JSON.stringify(remainingPlayers));
+
+      // Recalculate all rounds with remaining players
+      const updatedRounds = rounds.map(round => {
+        const activePlayers = remainingPlayers.length;
+        const remainingValues = round.values.filter((_, index) => !kickedPlayers.includes(index));
+        const remainingPoints = round.points.filter((_, index) => !kickedPlayers.includes(index));
+        
+        // Adjust winner index for remaining players
+        const newWinnerIndex = remainingPlayers.findIndex((_, index) => 
+          players.indexOf(remainingPlayers[index]) === round.winner
+        );
+
+        const valueFactors = remainingValues.map(value => valueFactorFormula(value));
+        const totalValueFactor = valueFactors.reduce((sum, val) => sum + val, 0);
+
+        const adjustedPoints = [...remainingPoints];
+        adjustedPoints[newWinnerIndex] = 0;
+
+        const rawScores = valueFactors.map((vf, i) =>
+          userScoreFormula(activePlayers, totalValueFactor, vf, adjustedPoints[i])
+        );
+        const sumOfOthers = rawScores.reduce(
+          (sum, score, i) => (i === newWinnerIndex ? sum : sum + score),
+          0
+        );
+        rawScores[newWinnerIndex] = -sumOfOthers;
+
+        return {
+          values: remainingValues,
+          points: remainingPoints,
+          scores: rawScores,
+          winner: newWinnerIndex,
+          totalValueFactor
+        };
+      });
+
+      setRounds(updatedRounds);
+      setKickedPlayers([]);
+      localStorage.setItem("rounds", JSON.stringify(updatedRounds));
     }
   };
 
@@ -202,6 +332,22 @@ const Scoreboard: React.FC = () => {
             {rounds.length === players.length && players.length > 0 && (
                 <Button onClick={handleExportCSV}>⬇️</Button>
               )}
+          </div>
+        </div>
+
+        {/* Kick Player Mode Toggle */}
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="recalculateMode"
+              checked={recalculateMode}
+              onChange={(e) => setRecalculateMode(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <label htmlFor="recalculateMode" className="text-sm font-medium">
+              Recalculate scores when kicking players
+            </label>
           </div>
         </div>
 
@@ -236,16 +382,20 @@ const Scoreboard: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {players.map((player, idx) => (
-                      <SelectItem key={idx} value={idx.toString()}>
-                        {getInitials(player)}
-                      </SelectItem>
+                      !kickedPlayers.includes(idx) && (
+                        <SelectItem key={idx} value={idx.toString()}>
+                          {getInitials(player)}
+                        </SelectItem>
+                      )
                     ))}
                   </SelectContent>
                 </Select>
               </span>
             </div>
             {players.map((player, index) => (
-              <div key={index} className="grid grid-cols-4 items-center gap-2">
+              <div key={index} className={`grid grid-cols-4 items-center gap-2 ${
+                kickedPlayers.includes(index) ? 'opacity-50' : ''
+              }`}>
                 <span className={`font-medium col-span-1 ${index === winner ? "text-green-600" : ""}`}>
                   <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
                   <span className="hidden md:block"> {player}</span> {index === winner && "(Winner)"}
@@ -255,6 +405,7 @@ const Scoreboard: React.FC = () => {
                   <Select
                     value={tempValues[index].toString()}
                     onValueChange={(val) => handleValueChange(index, parseInt(val))}
+                    disabled={kickedPlayers.includes(index)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select value" defaultValue="0">
@@ -275,7 +426,7 @@ const Scoreboard: React.FC = () => {
                   <Select
                     value={index === winner ? "0" : tempPoints[index]?.toString()}
                     onValueChange={(value) => handlePointChange(index, parseInt(value))}
-                    disabled={index === winner}
+                    disabled={index === winner || kickedPlayers.includes(index)}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select value" defaultValue="0">
@@ -292,7 +443,6 @@ const Scoreboard: React.FC = () => {
                   </Select>
                 </div>
                 <div className="col-span-1 font-mono">
-                  
                   {showDetails && (
                     <>
                     <div className="flex items-center gap-1">
@@ -342,9 +492,24 @@ const Scoreboard: React.FC = () => {
                 <span className="hidden md:block"> Round (TVF) ↓</span>
               </div>
               {players.map((player, idx) => (
-                <div key={idx} className="border border-gray-400 p-2 text-center font-semibold truncate bg-blue-100">
-                  <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
-                  <span className="hidden md:block"> {player}</span>
+                <div key={idx} className={`border border-gray-400 p-2 text-center font-semibold truncate ${
+                  kickedPlayers.includes(idx) ? 'bg-gray-300' : 'bg-blue-100'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <span>
+                      <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                      <span className="hidden md:block"> {player}</span>
+                    </span>
+                    {!kickedPlayers.includes(idx) && (
+                      <button
+                        onClick={() => handleKickPlayer(idx)}
+                        className="text-red-600 hover:text-red-800 ml-2"
+                        title="Kick player"
+                      >
+                        🚫
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -362,6 +527,7 @@ const Scoreboard: React.FC = () => {
                       key={idx}
                       className={`border border-gray-400 p-2 text-center 
                         ${
+                          kickedPlayers.includes(idx) ? 'bg-gray-300 opacity-50' :
                           rIdx % 2 === 0 ? "bg-gray-200" : "bg-white"
                         }
                         ${
@@ -388,7 +554,9 @@ const Scoreboard: React.FC = () => {
                 <span className="hidden md:block">Total</span>
               </div>
               {totalScores.map((total, idx) => (
-                <div key={idx} className="border border-gray-400 p-2 text-center font-semibold  bg-yellow-100">
+                <div key={idx} className={`border border-gray-400 p-2 text-center font-semibold ${
+                  kickedPlayers.includes(idx) ? 'bg-gray-300' : 'bg-yellow-100'
+                }`}>
                   {total.toFixed(0)}
                 </div>
               ))}
@@ -412,7 +580,6 @@ const Scoreboard: React.FC = () => {
               >
                 <span className="block md:hidden uppercase truncate">PLR ↓</span>
                 <span className="hidden md:block"> Players ↓</span>
-                
               </div>
 
               {/* Header row: Round 1, Round 2 ... Total */}
@@ -439,12 +606,27 @@ const Scoreboard: React.FC = () => {
               {players.map((player, pIdx) => (
                 <div
                   key={pIdx}
-                  className="sticky left-0 border border-gray-400 p-2 font-semibold z-20 text-left truncate bg-blue-100"
+                  className={`sticky left-0 border border-gray-400 p-2 font-semibold z-20 text-left truncate ${
+                    kickedPlayers.includes(pIdx) ? 'bg-gray-300' : 'bg-blue-100'
+                  }`}
                   style={{ gridColumn: 1, gridRow: pIdx + 2 }}
                   title={player}
                 >
-                  <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
-                  <span className="hidden md:block"> {player}</span>
+                  <div className="flex items-center justify-between">
+                    <span>
+                      <span className="block md:hidden uppercase truncate">{getInitials(player)}</span>
+                      <span className="hidden md:block"> {player}</span>
+                    </span>
+                    {!kickedPlayers.includes(pIdx) && (
+                      <button
+                        onClick={() => handleKickPlayer(pIdx)}
+                        className="text-red-600 hover:text-red-800 ml-2"
+                        title="Kick player"
+                      >
+                        🚫
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
 
@@ -455,8 +637,9 @@ const Scoreboard: React.FC = () => {
                     key={`${rIdx}-${pIdx}`}
                     className={`border border-gray-400 p-2 text-center 
                       ${
-                          pIdx % 2 === 0 ? "bg-gray-200" : "bg-white"
-                        }
+                        kickedPlayers.includes(pIdx) ? 'bg-gray-300 opacity-50' :
+                        pIdx % 2 === 0 ? "bg-gray-200" : "bg-white"
+                      }
                       ${
                       round.winner === pIdx ? "font-bold text-green-600" : ""
                     }`}
@@ -476,7 +659,9 @@ const Scoreboard: React.FC = () => {
               {players.map((_, pIdx) => (
                 <div
                   key={`total-${pIdx}`}
-                  className="border border-gray-400 p-2 font-semibold text-center bg-yellow-100"
+                  className={`border border-gray-400 p-2 font-semibold text-center ${
+                    kickedPlayers.includes(pIdx) ? 'bg-gray-300' : 'bg-yellow-100'
+                  }`}
                   style={{ gridColumn: rounds.length + 2, gridRow: pIdx + 2 }}
                 >
                   {totalScores[pIdx].toFixed(0)}
@@ -490,6 +675,15 @@ const Scoreboard: React.FC = () => {
           <Button variant="destructive" onClick={handleResetGame}>
             Reset Game
           </Button>
+          {kickedPlayers.length > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={handleRemoveKickedPlayers}
+              className="bg-red-700 hover:bg-red-800"
+            >
+              Remove Kicked Players
+            </Button>
+          )}
           <Button variant="outline" onClick={handleStartNewGame}>
             Start New Game
           </Button>
